@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mi Amigo la Computadora - Simulador Interactivo Sensorial</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Lexend', sans-serif;
+            background-color: #F8FAFC;
+            color: #1E293B;
+            user-select: none;
+            transition: background-color 0.5s ease, color 0.5s ease;
+        }
+
+        /* Calm Sensory Mode Overrides */
+        body.calm-mode {
+            background-color: #E2E8F0 !important;
+            color: #334155 !important;
+        }
+        body.calm-mode .animate-bounce,
+        body.calm-mode .animate-pulse,
+        body.calm-mode .animate-ping,
+        body.calm-mode .animate-spin,
+        body.calm-mode .animated-float,
+        body.calm-mode .animated-pulse-soft,
+        body.calm-mode .sound-wave-circle,
+        body.calm-mode .fan-blade {
+            animation: none !important;
+        }
+
+        /* Custom SVG Animations */
+        @keyframes gentleFloat {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-6px); }
+        }
+
+        @keyframes subtlePulse {
+            0%, 100% { transform: scale(1); opacity: 0.95; }
+            50% { transform: scale(1.04); opacity: 1; }
+        }
+
+        @keyframes waveExpand {
+            0% { transform: scale(0.6); opacity: 0.9; }
+            100% { transform: scale(1.4); opacity: 0; }
+        }
+
+        @keyframes fanRotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .animated-float {
+            animation: gentleFloat 3.5s infinite ease-in-out;
+        }
+
+        .animated-pulse-soft {
+            animation: subtlePulse 2.5s infinite ease-in-out;
+        }
+
+        .sound-wave-circle {
+            animation: waveExpand 1.8s infinite linear;
+            transform-origin: center;
+        }
+
+        .fan-blade {
+            animation: fanRotate 2s linear infinite;
+            transform-origin: center;
+        }
+
+        /* Accessibility focus states */
+        button:focus, div[tabindex="0"]:focus {
+            outline: 4px solid #0EA5E9;
+            outline-offset: 2px;
+        }
+
+        .drop-target-active {
+            border-color: #0284C7 !important;
+            background-color: #E0F2FE !important;
+            transform: scale(1.02);
+        }
+
+        .interactive-card {
+            transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .interactive-card:hover {
+            transform: translateY(-5px);
+        }
+
+        /* Interactive Keyboard Keys */
+        .key-btn {
+            transition: all 0.1s ease;
+        }
+        .key-btn:active, .key-btn.pressed {
+            transform: translateY(3px) scale(0.95);
+            background-color: #38BDF8 !important;
+            color: white !important;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between p-3 md:p-6 bg-slate-50">
+
+    <header class="max-w-6xl mx-auto w-full flex flex-col md:flex-row justify-between items-center bg-white p-4 rounded-3xl shadow-sm border border-slate-200 mb-6 gap-4">
+        <div class="flex items-center space-x-3">
+            <div class="bg-sky-100 p-3 rounded-2xl">
+                <svg class="w-9 h-9 text-sky-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                </svg>
+            </div>
+            <div>
+                <h1 class="text-2xl md:text-3xl font-black text-slate-800 tracking-tight">Mi Computadora</h1>
+                <p class="text-xs md:text-sm font-semibold text-slate-500">Simulador interactivo con sonidos y animaciones</p>
+            </div>
+        </div>
+
+        <!-- Navigation Tabs & Sensory Controls -->
+        <nav class="flex flex-wrap items-center justify-center gap-2 md:gap-3">
+            <button id="tabBtnExplore" onclick="switchTab('explore')" class="px-4 py-2.5 rounded-2xl text-base font-bold bg-sky-500 text-white shadow-md hover:bg-sky-600 transition flex items-center gap-2">
+                <span>🔍</span> Conocer
+            </button>
+            <button id="tabBtnConnect" onclick="switchTab('connect')" class="px-4 py-2.5 rounded-2xl text-base font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition flex items-center gap-2">
+                <span>🔌</span> Conectar
+            </button>
+            <button id="tabBtnGame" onclick="switchTab('game')" class="px-4 py-2.5 rounded-2xl text-base font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition flex items-center gap-2">
+                <span>🧩</span> Encajar
+            </button>
+            <button id="tabBtnPlayground" onclick="switchTab('playground')" class="px-4 py-2.5 rounded-2xl text-base font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition flex items-center gap-2">
+                <span>⌨️</span> Practicar
+            </button>
+
+            <div class="h-8 w-px bg-slate-200 mx-1 hidden sm:block"></div>
+
+            <!-- Voice Toggle -->
+            <button id="btnAudioToggle" onclick="toggleAudio()" class="p-3 bg-amber-100 text-amber-900 rounded-2xl font-bold hover:bg-amber-200 transition flex items-center gap-1" title="Activar/Desactivar Voz">
+                <span id="audioIcon" class="text-xl">🔊</span>
+            </button>
+
+            <!-- Sensory Calm Mode Toggle -->
+            <button id="btnCalmToggle" onclick="toggleCalmMode()" class="px-3 py-2.5 bg-emerald-100 text-emerald-900 rounded-2xl font-bold hover:bg-emerald-200 transition flex items-center gap-1 text-sm" title="Modo Tranquilo Sensorial">
+                <span>🧘</span> Modo Calma
+            </button>
+        </nav>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="max-w-6xl mx-auto w-full flex-grow flex flex-col justify-center items-center">
+
+        <section id="tabExplore" class="w-full flex flex-col items-center">
+            
+            <div class="bg-sky-50 border border-sky-200 text-sky-900 px-6 py-4 rounded-2xl mb-6 text-center text-lg md:text-xl font-semibold w-full shadow-sm flex items-center justify-between gap-4">
+                <p id="exploreBannerMsg">Toca o haz clic en cualquier parte de la computadora para ver cómo funciona.</p>
+                <button onclick="speakText(document.getElementById('exploreBannerMsg').innerText)" class="px-3 py-1.5 bg-sky-200 hover:bg-sky-300 text-sky-900 rounded-xl font-bold text-sm flex items-center gap-1 shrink-0">
+                    🔊 Escuchar
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
+                
+                <!-- MONITOR CARD -->
+                <div onclick="openPartModal('monitor')" class="interactive-card bg-white p-5 rounded-3xl border-2 border-slate-200 shadow-sm hover:border-sky-400 cursor-pointer flex flex-col items-center text-center">
+                    <div class="w-full h-44 bg-sky-50 rounded-2xl flex items-center justify-center relative overflow-hidden mb-4 border border-sky-100">
+                        <svg class="w-36 h-36 animated-float" viewBox="0 0 100 100">
+                            <rect x="8" y="12" width="84" height="58" rx="8" fill="#1E293B"/>
+                            <rect x="14" y="18" width="72" height="46" rx="4" fill="#38BDF8"/>
+                            <path d="M 14 50 Q 30 35 50 48 T 86 40 L 86 64 L 14 64 Z" fill="#7DD3FC"/>
+                            <circle cx="38" cy="36" r="4" fill="#0F172A"/>
+                            <circle cx="62" cy="36" r="4" fill="#0F172A"/>
+                            <circle cx="40" cy="35" r="1.5" fill="#FFFFFF"/>
+                            <circle cx="64" cy="35" r="1.5" fill="#FFFFFF"/>
+                            <path d="M 42 46 Q 50 54 58 46" stroke="#0F172A" stroke-width="3" fill="none" stroke-linecap="round"/>
+                            <rect x="42" y="70" width="16" height="14" fill="#64748B"/>
+                            <rect x="28" y="84" width="44" height="6" rx="3" fill="#475569"/>
+                        </svg>
+                    </div>
+                    <span class="px-3 py-1 bg-sky-100 text-sky-800 text-xs font-extrabold rounded-full mb-2">PANTALLA</span>
+                    <h3 class="text-2xl font-bold text-slate-800 mb-1">El Monitor</h3>
+                    <p class="text-slate-600 font-medium text-sm">Nos muestra fotos, videos, juegos y todo lo que hacemos.</p>
+                </div>
+
+                <!-- CPU CARD -->
+                <div onclick="openPartModal('cpu')" class="interactive-card bg-white p-5 rounded-3xl border-2 border-slate-200 shadow-sm hover:border-indigo-400 cursor-pointer flex flex-col items-center text-center">
+                    <div class="w-full h-44 bg-indigo-50 rounded-2xl flex items-center justify-center relative overflow-hidden mb-4 border border-indigo-100">
+                        <svg class="w-36 h-36 animated-pulse-soft" viewBox="0 0 100 100">
+                            <rect x="24" y="8" width="52" height="84" rx="8" fill="#0F172A"/>
+                            <rect x="34" y="18" width="32" height="6" rx="2" fill="#334155"/>
+                            <circle cx="50" cy="36" r="7" fill="#38BDF8"/>
+                            <circle cx="50" cy="36" r="3" fill="#FFFFFF"/>
+                            <g transform="translate(50, 62)">
+                                <circle cx="0" cy="0" r="14" fill="#1E293B" stroke="#475569" stroke-width="2"/>
+                                <g class="fan-blade">
+                                    <path d="M-2 -10 C 5 -10, 5 0, 0 0 C -5 0, -5 -10, -2 -10 Z" fill="#60A5FA"/>
+                                    <path d="M10 -2 C 10 5, 0 5, 0 0 C 0 -5, 10 -5, 10 -2 Z" fill="#60A5FA"/>
+                                    <path d="M2 10 C -5 10, -5 0, 0 0 C 5 0, 5 10, 2 10 Z" fill="#60A5FA"/>
+                                    <path d="M-10 2 C -10 -5, 0 -5, 0 0 C 0 5, -10 5, -10 2 Z" fill="#60A5FA"/>
+                                </g>
+                            </g>
+                            <rect x="34" y="82" width="10" height="4" fill="#64748B"/>
+                            <rect x="48" y="82" width="10" height="4" fill="#64748B"/>
+                        </svg>
+                    </div>
+                    <span class="px-3 py-1 bg-indigo-100 text-indigo-800 text-xs font-extrabold rounded-full mb-2">CEREBRO</span>
+                    <h3 class="text-2xl font-bold text-slate-800 mb-1">El CPU (La Torre)</h3>
+                    <p class="text-slate-600 font-medium text-sm">Es el cerebro. Procesa la información y guarda todo.</p>
+                </div>
+
+                <!-- KEYBOARD CARD -->
+                <div onclick="openPartModal('keyboard')" class="interactive-card bg-white p-5 rounded-3xl border-2 border-slate-200 shadow-sm hover:border-amber-400 cursor-pointer flex flex-col items-center text-center">
+                    <div class="w-full h-44 bg-amber-50 rounded-2xl flex items-center justify-center relative overflow-hidden mb-4 border border-amber-100">
+                        <svg class="w-40 h-36 animated-float" viewBox="0 0 100 100">
+                            <rect x="6" y="28" width="88" height="48" rx="7" fill="#1E293B"/>
+                            <rect x="12" y="34" width="12" height="8" rx="2" fill="#F8FAFC"/>
+                            <rect x="28" y="34" width="12" height="8" rx="2" fill="#38BDF8"/>
+                            <rect x="44" y="34" width="12" height="8" rx="2" fill="#F8FAFC"/>
+                            <rect x="60" y="34" width="12" height="8" rx="2" fill="#F8FAFC"/>
+                            <rect x="76" y="34" width="12" height="8" rx="2" fill="#FACC15"/>
+                            <rect x="12" y="46" width="12" height="8" rx="2" fill="#F8FAFC"/>
+                            <rect x="28" y="46" width="12" height="8" rx="2" fill="#4ADE80"/>
+                            <rect x="44" y="46" width="12" height="8" rx="2" fill="#F8FAFC"/>
+                            <rect x="60" y="46" width="12" height="8" rx="2" fill="#F8FAFC"/>
+                            <rect x="76" y="46" width="12" height="8" rx="2" fill="#F8FAFC"/>
+                            <rect x="28" y="58" width="44" height="8" rx="3" fill="#F8FAFC"/>
+                        </svg>
+                    </div>
+                    <span class="px-3 py-1 bg-amber-100 text-amber-800 text-xs font-extrabold rounded-full mb-2">ENTRADA</span>
+                    <h3 class="text-2xl font-bold text-slate-800 mb-1">El Teclado</h3>
+                    <p class="text-slate-600 font-medium text-sm">Tiene muchas teclas con letras y números para escribir.</p>
+                </div>
+
+                <!-- MOUSE CARD -->
+                <div onclick="openPartModal('mouse')" class="interactive-card bg-white p-5 rounded-3xl border-2 border-slate-200 shadow-sm hover:border-rose-400 cursor-pointer flex flex-col items-center text-center">
+                    <div class="w-full h-44 bg-rose-50 rounded-2xl flex items-center justify-center relative overflow-hidden mb-4 border border-rose-100">
+                        <svg class="w-36 h-36 animated-pulse-soft" viewBox="0 0 100 100">
+                            <rect x="28" y="16" width="44" height="68" rx="22" fill="#F1F5F9" stroke="#cbd5e1" stroke-width="3"/>
+                            <line x1="50" y1="16" x2="50" y2="40" stroke="#94A3B8" stroke-width="2"/>
+                            <rect x="46" y="24" width="8" height="12" rx="4" fill="#FB7185" class="animate-bounce"/>
+                            <path d="M 50 16 Q 50 4 35 6" stroke="#94A3B8" stroke-width="3" fill="none" stroke-linecap="round"/>
+                        </svg>
+                    </div>
+                    <span class="px-3 py-1 bg-rose-100 text-rose-800 text-xs font-extrabold rounded-full mb-2">GUIADOR</span>
+                    <h3 class="text-2xl font-bold text-slate-800 mb-1">El Ratón (Mouse)</h3>
+                    <p class="text-slate-600 font-medium text-sm">Mueve la flechita en la pantalla y nos deja hacer clic.</p>
+                </div>
+
+                <!-- SPEAKERS CARD -->
+                <div onclick="openPartModal('speakers')" class="interactive-card bg-white p-5 rounded-3xl border-2 border-slate-200 shadow-sm hover:border-emerald-400 cursor-pointer flex flex-col items-center text-center">
+                    <div class="w-full h-44 bg-emerald-50 rounded-2xl flex items-center justify-center relative overflow-hidden mb-4 border border-emerald-100">
+                        <svg class="w-36 h-36 animated-float" viewBox="0 0 100 100">
+                            <rect x="18" y="20" width="28" height="60" rx="5" fill="#1E293B"/>
+                            <circle cx="32" cy="38" r="7" fill="#64748B"/>
+                            <circle cx="32" cy="60" r="10" fill="#38BDF8"/>
+                            <rect x="54" y="20" width="28" height="60" rx="5" fill="#1E293B"/>
+                            <circle cx="68" cy="38" r="7" fill="#64748B"/>
+                            <circle cx="68" cy="60" r="10" fill="#38BDF8"/>
+                            <circle cx="32" cy="60" r="16" fill="none" stroke="#34D399" stroke-width="2" class="sound-wave-circle"/>
+                            <circle cx="68" cy="60" r="16" fill="none" stroke="#34D399" stroke-width="2" class="sound-wave-circle"/>
+                        </svg>
+                    </div>
+                    <span class="px-3 py-1 bg-emerald-100 text-emerald-800 text-xs font-extrabold rounded-full mb-2">SONIDO</span>
+                    <h3 class="text-2xl font-bold text-slate-800 mb-1">Los Parlantes</h3>
+                    <p class="text-slate-600 font-medium text-sm">Nos permiten escuchar la música, canciones y voces.</p>
+                </div>
+
+                <!-- WEBCAM CARD -->
+                <div onclick="openPartModal('webcam')" class="interactive-card bg-white p-5 rounded-3xl border-2 border-slate-200 shadow-sm hover:border-purple-400 cursor-pointer flex flex-col items-center text-center">
+                    <div class="w-full h-44 bg-purple-50 rounded-2xl flex items-center justify-center relative overflow-hidden mb-4 border border-purple-100">
+                        <svg class="w-36 h-36 animated-pulse-soft" viewBox="0 0 100 100">
+                            <ellipse cx="50" cy="80" rx="20" ry="6" fill="#475569"/>
+                            <rect x="46" y="55" width="8" height="25" fill="#64748B"/>
+                            <circle cx="50" cy="42" r="22" fill="#1E293B"/>
+                            <circle cx="50" cy="42" r="14" fill="#334155"/>
+                            <circle cx="50" cy="42" r="8" fill="#818CF8"/>
+                            <circle cx="47" cy="39" r="3" fill="#FFFFFF"/>
+                            <circle cx="50" cy="24" r="2.5" fill="#4ADE80" class="animate-ping"/>
+                        </svg>
+                    </div>
+                    <span class="px-3 py-1 bg-purple-100 text-purple-800 text-xs font-extrabold rounded-full mb-2">IMAGEN</span>
+                    <h3 class="text-2xl font-bold text-slate-800 mb-1">La Cámara Web</h3>
+                    <p class="text-slate-600 font-medium text-sm">Permite que otras personas nos vean en videollamadas.</p>
+                </div>
+
+            </div>
+        </section>
+
+        <section id="tabConnect" class="w-full flex-col items-center hidden">
+            
+            <div class="bg-indigo-50 border border-indigo-200 text-indigo-900 px-6 py-4 rounded-2xl mb-6 text-center text-lg md:text-xl font-semibold w-full shadow-sm flex items-center justify-between gap-4">
+                <p id="connectBannerMsg">¡Conecta cada parte al CPU tocando los cables para encender la computadora!</p>
+                <button onclick="speakText(document.getElementById('connectBannerMsg').innerText)" class="px-3 py-1.5 bg-indigo-200 hover:bg-indigo-300 text-indigo-900 rounded-xl font-bold text-sm flex items-center gap-1 shrink-0">
+                    🔊 Escuchar
+                </button>
+            </div>
+
+            <!-- Virtual Desktop Setup Board -->
+            <div class="w-full bg-white p-6 md:p-8 rounded-3xl border-2 border-slate-200 shadow-sm flex flex-col items-center relative">
+                
+                <div id="setupStatusBadge" class="mb-6 px-6 py-2 bg-slate-100 border border-slate-300 text-slate-700 font-bold rounded-full text-base flex items-center gap-2">
+                    <span>⚡ Estado:</span> <span id="statusText">Computadora Desconectada (0/4 Conectados)</span>
+                </div>
+
+                <!-- Grid of desktop components to connect -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 w-full mb-8">
+                    
+                    <button id="conn-monitor" onclick="connectPart('monitor')" class="p-4 bg-slate-50 border-2 border-slate-300 rounded-2xl flex flex-col items-center justify-center hover:bg-sky-50 transition cursor-pointer group">
+                        <span class="text-4xl mb-2 group-hover:scale-110 transition">🖥️</span>
+                        <span class="font-bold text-slate-700">Pantalla</span>
+                        <span id="badge-monitor" class="mt-2 text-xs font-black px-2.5 py-1 rounded-full bg-slate-200 text-slate-600">🔌 Toca para conectar</span>
+                    </button>
+
+                    <button id="conn-keyboard" onclick="connectPart('keyboard')" class="p-4 bg-slate-50 border-2 border-slate-300 rounded-2xl flex flex-col items-center justify-center hover:bg-amber-50 transition cursor-pointer group">
+                        <span class="text-4xl mb-2 group-hover:scale-110 transition">⌨️</span>
+                        <span class="font-bold text-slate-700">Teclado</span>
+                        <span id="badge-keyboard" class="mt-2 text-xs font-black px-2.5 py-1 rounded-full bg-slate-200 text-slate-600">🔌 Toca para conectar</span>
+                    </button>
+
+                    <button id="conn-mouse" onclick="connectPart('mouse')" class="p-4 bg-slate-50 border-2 border-slate-300 rounded-2xl flex flex-col items-center justify-center hover:bg-rose-50 transition cursor-pointer group">
+                        <span class="text-4xl mb-2 group-hover:scale-110 transition">🖱️</span>
+                        <span class="font-bold text-slate-700">Ratón</span>
+                        <span id="badge-mouse" class="mt-2 text-xs font-black px-2.5 py-1 rounded-full bg-slate-200 text-slate-600">🔌 Toca para conectar</span>
+                    </button>
+
+                    <button id="conn-speakers" onclick="connectPart('speakers')" class="p-4 bg-slate-50 border-2 border-slate-300 rounded-2xl flex flex-col items-center justify-center hover:bg-emerald-50 transition cursor-pointer group">
+                        <span class="text-4xl mb-2 group-hover:scale-110 transition">🔊</span>
+                        <span class="font-bold text-slate-700">Parlantes</span>
+                        <span id="badge-speakers" class="mt-2 text-xs font-black px-2.5 py-1 rounded-full bg-slate-200 text-slate-600">🔌 Toca para conectar</span>
+                    </button>
+
+                </div>
+
+                <!-- Central Computer Station Visual -->
+                <div class="w-full max-w-lg bg-slate-900 rounded-3xl p-6 flex flex-col items-center justify-center border-4 border-slate-700 shadow-xl relative min-h-[220px]">
+                    <div id="computerScreenDisplay" class="w-full h-36 bg-slate-800 rounded-2xl border-2 border-slate-600 flex flex-col items-center justify-center text-center p-4 transition-all duration-500">
+                        <p id="screenText" class="text-slate-400 font-bold text-lg">SYSTEM OFF</p>
+                        <p id="screenSubtext" class="text-slate-500 text-xs mt-1">Conecta todos los cables para encender la computadora</p>
+                    </div>
+
+                    <button id="btnPowerOn" onclick="turnOnComputer()" disabled class="mt-4 px-8 py-3 bg-slate-700 text-slate-400 font-black text-lg rounded-2xl shadow-lg transition duration-300 flex items-center gap-2 cursor-not-allowed">
+                        <span>⚡</span> ENCENDER COMPUTADORA
+                    </button>
+                </div>
+
+                <button onclick="resetConnectionLab()" class="mt-6 px-5 py-2 bg-slate-200 text-slate-700 font-bold rounded-xl hover:bg-slate-300 transition text-sm">
+                    🔄 Reiniciar Conexiones
+                </button>
+
+            </div>
+
+        </section>
+
+        <section id="tabGame" class="w-full flex-col items-center hidden">
+            
+            <div class="bg-emerald-50 border border-emerald-200 text-emerald-900 px-6 py-4 rounded-2xl mb-6 text-center text-lg md:text-xl font-semibold w-full shadow-sm flex items-center justify-between gap-4">
+                <p id="gameBannerMsg">Arrastra con el ratón o dedo cada parte a su casillero correspondiente.</p>
+                <button onclick="speakText(document.getElementById('gameBannerMsg').innerText)" class="px-3 py-1.5 bg-emerald-200 hover:bg-emerald-300 text-emerald-900 rounded-xl font-bold text-sm flex items-center gap-1 shrink-0">
+                    🔊 Escuchar
+                </button>
+            </div>
+
+            <!-- Draggable items panel -->
+            <div class="flex flex-wrap justify-center gap-4 mb-8 w-full p-5 bg-white rounded-3xl border border-slate-200 shadow-sm" id="dragContainer">
+                
+                <div id="drag-monitor" draggable="true" ondragstart="handleDragStart(event)" class="cursor-grab bg-sky-100 border-2 border-sky-300 px-5 py-3 rounded-2xl font-bold text-sky-900 text-lg flex items-center gap-2 shadow-sm active:cursor-grabbing hover:bg-sky-200 transition">
+                    <span>🖥️</span> Pantalla
+                </div>
+
+                <div id="drag-cpu" draggable="true" ondragstart="handleDragStart(event)" class="cursor-grab bg-indigo-100 border-2 border-indigo-300 px-5 py-3 rounded-2xl font-bold text-indigo-900 text-lg flex items-center gap-2 shadow-sm active:cursor-grabbing hover:bg-indigo-200 transition">
+                    <span>🔲</span> CPU (Torre)
+                </div>
+
+                <div id="drag-keyboard" draggable="true" ondragstart="handleDragStart(event)" class="cursor-grab bg-amber-100 border-2 border-amber-300 px-5 py-3 rounded-2xl font-bold text-amber-900 text-lg flex items-center gap-2 shadow-sm active:cursor-grabbing hover:bg-amber-200 transition">
+                    <span>⌨️</span> Teclado
+                </div>
+
+                <div id="drag-mouse" draggable="true" ondragstart="handleDragStart(event)" class="cursor-grab bg-rose-100 border-2 border-rose-300 px-5 py-3 rounded-2xl font-bold text-rose-900 text-lg flex items-center gap-2 shadow-sm active:cursor-grabbing hover:bg-rose-200 transition">
+                    <span>🖱️</span> Ratón
+                </div>
+
+            </div>
+
+            <!-- Drop targets -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 w-full">
+                
+                <div ondrop="handleDrop(event, 'monitor')" ondragover="allowDrop(event)" ondragenter="handleDragEnter(event)" ondragleave="handleDragLeave(event)" class="drop-target bg-white border-4 border-dashed border-slate-300 rounded-3xl p-6 min-h-[170px] flex flex-col items-center justify-center text-center transition">
+                    <span class="text-4xl mb-2 text-slate-300">🖥️</span>
+                    <p class="font-bold text-slate-400">¿Dónde va la Pantalla?</p>
+                </div>
+
+                <div ondrop="handleDrop(event, 'cpu')" ondragover="allowDrop(event)" ondragenter="handleDragEnter(event)" ondragleave="handleDragLeave(event)" class="drop-target bg-white border-4 border-dashed border-slate-300 rounded-3xl p-6 min-h-[170px] flex flex-col items-center justify-center text-center transition">
+                    <span class="text-4xl mb-2 text-slate-300">🔲</span>
+                    <p class="font-bold text-slate-400">¿Dónde va el CPU?</p>
+                </div>
+
+                <div ondrop="handleDrop(event, 'keyboard')" ondragover="allowDrop(event)" ondragenter="handleDragEnter(event)" ondragleave="handleDragLeave(event)" class="drop-target bg-white border-4 border-dashed border-slate-300 rounded-3xl p-6 min-h-[170px] flex flex-col items-center justify-center text-center transition">
+                    <span class="text-4xl mb-2 text-slate-300">⌨️</span>
+                    <p class="font-bold text-slate-400">¿Dónde va el Teclado?</p>
+                </div>
+
+                <div ondrop="handleDrop(event, 'mouse')" ondragover="allowDrop(event)" ondragenter="handleDragEnter(event)" ondragleave="handleDragLeave(event)" class="drop-target bg-white border-4 border-dashed border-slate-300 rounded-3xl p-6 min-h-[170px] flex flex-col items-center justify-center text-center transition">
+                    <span class="text-4xl mb-2 text-slate-300">🖱️</span>
+                    <p class="font-bold text-slate-400">¿Dónde va el Ratón?</p>
+                </div>
+
+            </div>
+
+            <button onclick="resetDragGame()" class="mt-8 px-6 py-3 bg-slate-200 text-slate-700 font-bold rounded-2xl hover:bg-slate-300 transition flex items-center gap-2">
+                🔄 Volver a Jugar
+            </button>
+        </section>
+
+        <section id="tabPlayground" class="w-full flex-col items-center hidden">
+            
+            <div class="bg-amber-50 border border-amber-200 text-amber-900 px-6 py-4 rounded-2xl mb-6 text-center text-lg md:text-xl font-semibold w-full shadow-sm flex items-center justify-between gap-4">
+                <p id="playgroundBannerMsg">Presiona botones en el teclado o haz clic con el ratón para ver qué sucede.</p>
+                <button onclick="speakText(document.getElementById('playgroundBannerMsg').innerText)" class="px-3 py-1.5 bg-amber-200 hover:bg-amber-300 text-amber-900 rounded-xl font-bold text-sm flex items-center gap-1 shrink-0">
+                    🔊 Escuchar
+                </button>
+            </div>
+
+            <div class="w-full bg-white p-6 rounded-3xl border-2 border-slate-200 shadow-sm flex flex-col items-center mb-6">
+                
+                <div class="w-full h-40 bg-slate-900 rounded-2xl p-4 flex flex-col items-center justify-center relative overflow-hidden border-4 border-slate-700">
+                    <div id="interactiveDisplayEmoji" class="text-6xl mb-2 transition-all transform duration-150 scale-100">💻</div>
+                    <p id="interactiveDisplayText" class="text-sky-400 font-black text-2xl tracking-wide">¡Hola! Presiona una tecla...</p>
+                </div>
+
+                <div class="mt-6 w-full max-w-2xl flex flex-col gap-2">
+                    <div class="flex justify-center gap-1.5 md:gap-2">
+                        <button onclick="pressVirtualKey('A', '🍎')" class="key-btn px-3 py-3 md:px-5 md:py-4 bg-slate-100 border border-slate-300 rounded-xl font-black text-lg md:text-xl text-slate-700">A</button>
+                        <button onclick="pressVirtualKey('E', '⭐')" class="key-btn px-3 py-3 md:px-5 md:py-4 bg-slate-100 border border-slate-300 rounded-xl font-black text-lg md:text-xl text-slate-700">E</button>
+                        <button onclick="pressVirtualKey('I', '🍦')" class="key-btn px-3 py-3 md:px-5 md:py-4 bg-slate-100 border border-slate-300 rounded-xl font-black text-lg md:text-xl text-slate-700">I</button>
+                        <button onclick="pressVirtualKey('O', '🐻')" class="key-btn px-3 py-3 md:px-5 md:py-4 bg-slate-100 border border-slate-300 rounded-xl font-black text-lg md:text-xl text-slate-700">O</button>
+                        <button onclick="pressVirtualKey('U', '🍇')" class="key-btn px-3 py-3 md:px-5 md:py-4 bg-slate-100 border border-slate-300 rounded-xl font-black text-lg md:text-xl text-slate-700">U</button>
+                    </div>
+
+                    <div class="flex justify-center gap-1.5 md:gap-2">
+                        <button onclick="pressVirtualKey('1', '🎈')" class="key-btn px-3 py-3 md:px-5 md:py-4 bg-sky-100 border border-sky-300 rounded-xl font-black text-lg md:text-xl text-sky-800">1</button>
+                        <button onclick="pressVirtualKey('2', '🚗')" class="key-btn px-3 py-3 md:px-5 md:py-4 bg-sky-100 border border-sky-300 rounded-xl font-black text-lg md:text-xl text-sky-800">2</button>
+                        <button onclick="pressVirtualKey('3', '🐱')" class="key-btn px-3 py-3 md:px-5 md:py-4 bg-sky-100 border border-sky-300 rounded-xl font-black text-lg md:text-xl text-sky-800">3</button>
+                        <button onclick="pressVirtualKey('4', '🚀')" class="key-btn px-3 py-3 md:px-5 md:py-4 bg-sky-100 border border-sky-300 rounded-xl font-black text-lg md:text-xl text-sky-800">4</button>
+                        <button onclick="pressVirtualKey('5', '🎨')" class="key-btn px-3 py-3 md:px-5 md:py-4 bg-sky-100 border border-sky-300 rounded-xl font-black text-lg md:text-xl text-sky-800">5</button>
+                    </div>
+
+                    <div class="mt-4 flex justify-center gap-4">
+                        <button onclick="simulateMouseClick('izquierdo')" class="px-6 py-3 bg-rose-500 hover:bg-rose-600 text-white font-bold rounded-2xl shadow-md transition flex items-center gap-2">
+                            <span>🖱️</span> Clic Izquierdo
+                        </button>
+                        <button onclick="simulateMouseClick('derecho')" class="px-6 py-3 bg-indigo-500 hover:bg-indigo-600 text-white font-bold rounded-2xl shadow-md transition flex items-center gap-2">
+                            <span>🖱️</span> Clic Derecho
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+
+        </section>
+
+    </main>
+
+    <!-- Modal for Part Explanation Details -->
+    <div id="partModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-3xl max-w-lg w-full p-6 md:p-8 flex flex-col items-center text-center shadow-xl border border-slate-100">
+            <div id="modalIconContainer" class="w-36 h-36 mb-4 flex items-center justify-center bg-slate-50 rounded-2xl">
+                <!-- SVG injected dynamically -->
+            </div>
+            <h2 id="modalTitle" class="text-3xl font-extrabold text-slate-800 mb-2">Título</h2>
+            <p id="modalDescription" class="text-slate-600 text-lg mb-6 leading-relaxed">Descripción detallada aquí.</p>
+            
+            <div class="flex gap-4 w-full">
+                <button onclick="speakText(document.getElementById('modalTitle').innerText + '. ' + document.getElementById('modalDescription').innerText)" class="flex-1 py-3 bg-amber-100 text-amber-900 font-bold rounded-2xl hover:bg-amber-200 transition flex items-center justify-center gap-2 text-base">
+                    🔊 Escuchar
+                </button>
+                <button onclick="closeModal()" class="flex-1 py-3 bg-sky-500 text-white font-bold rounded-2xl hover:bg-sky-600 transition text-base">
+                    ¡Entendido! ✨
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Celebration Overlay -->
+    <div id="celebrationOverlay" class="fixed inset-0 bg-sky-600/90 hidden flex-col items-center justify-center p-4 z-50 text-white text-center">
+        <div class="text-7xl mb-4 animate-bounce">🌟 🎈 🌟</div>
+        <h2 class="text-4xl md:text-5xl font-black mb-3">¡Excelente Trabajo!</h2>
+        <p class="text-2xl mb-8 font-medium max-w-md">¡Completaste la actividad con éxito!</p>
+        <button onclick="closeCelebration()" class="px-8 py-4 bg-white text-sky-800 text-xl font-bold rounded-2xl shadow-lg hover:bg-slate-100 transition">
+            ¡Continuar Jugando! 🎉
+        </button>
+    </div>
+
+    <footer class="max-w-6xl mx-auto w-full text-center py-4 text-slate-400 font-semibold text-xs md:text-sm">
+        Entorno adaptable de aprendizaje visual y sensorial • Diseñado para niños de 3er Grado
+    </footer>
+
+    <script>
+        let speechEnabled = true;
+        let calmModeEnabled = false;
+        let dragScore = 0;
+
+        let connectedParts = {
+            monitor: false,
+            keyboard: false,
+            mouse: false,
+            speakers: false
+        };
+
+        const partsData = {
+            monitor: {
+                title: "El Monitor (Pantalla)",
+                description: "Es como una televisión donde podemos ver los dibujos, los textos y los juegos que hacemos en la computadora.",
+                svg: `<svg class="w-28 h-28" viewBox="0 0 100 100">
+                        <rect x="8" y="12" width="84" height="58" rx="8" fill="#1E293B"/>
+                        <rect x="14" y="18" width="72" height="46" rx="4" fill="#38BDF8"/>
+                        <circle cx="38" cy="36" r="4" fill="#0F172A"/>
+                        <circle cx="62" cy="36" r="4" fill="#0F172A"/>
+                        <path d="M 42 46 Q 50 54 58 46" stroke="#0F172A" stroke-width="3" fill="none" stroke-linecap="round"/>
+                        <rect x="42" y="70" width="16" height="14" fill="#64748B"/>
+                        <rect x="28" y="84" width="44" height="6" rx="3" fill="#475569"/>
+                      </svg>`
+            },
+            cpu: {
+                title: "El CPU (La Torre)",
+                description: "Es el cerebro principal de la computadora. Procesa los datos, hace funcionar los programas y guarda nuestros archivos.",
+                svg: `<svg class="w-28 h-28" viewBox="0 0 100 100">
+                        <rect x="24" y="8" width="52" height="84" rx="8" fill="#0F172A"/>
+                        <rect x="34" y="18" width="32" height="6" rx="2" fill="#334155"/>
+                        <circle cx="50" cy="36" r="7" fill="#38BDF8"/>
+                        <circle cx="50" cy="36" r="3" fill="#FFFFFF"/>
+                        <circle cx="50" cy="62" r="12" fill="#1E293B" stroke="#475569" stroke-width="2"/>
+                      </svg>`
+            },
+            keyboard: {
+                title: "El Teclado",
+                description: "Nos permite comunicarnos con la computadora escribiendo palabras, números y comandos con sus teclas.",
+                svg: `<svg class="w-28 h-28" viewBox="0 0 100 100">
+                        <rect x="6" y="28" width="88" height="48" rx="7" fill="#1E293B"/>
+                        <rect x="12" y="34" width="12" height="8" rx="2" fill="#F8FAFC"/>
+                        <rect x="28" y="34" width="12" height="8" rx="2" fill="#38BDF8"/>
+                        <rect x="44" y="34" width="12" height="8" rx="2" fill="#F8FAFC"/>
+                        <rect x="28" y="58" width="44" height="8" rx="3" fill="#F8FAFC"/>
+                      </svg>`
+            },
+            mouse: {
+                title: "El Ratón (Mouse)",
+                description: "Es una herramienta que guía la flechita (puntero) en la pantalla para tocar, seleccionar y abrir cosas haciendo clic.",
+                svg: `<svg class="w-28 h-28" viewBox="0 0 100 100">
+                        <rect x="28" y="16" width="44" height="68" rx="22" fill="#F1F5F9" stroke="#cbd5e1" stroke-width="3"/>
+                        <line x1="50" y1="16" x2="50" y2="40" stroke="#94A3B8" stroke-width="2"/>
+                        <rect x="46" y="24" width="8" height="12" rx="4" fill="#FB7185"/>
+                      </svg>`
+            },
+            speakers: {
+                title: "Los Parlantes (Altavoces)",
+                description: "Producen el sonido de la computadora para que podamos escuchar música, videos y las explicaciones.",
+                svg: `<svg class="w-28 h-28" viewBox="0 0 100 100">
+                        <rect x="18" y="20" width="28" height="60" rx="5" fill="#1E293B"/>
+                        <circle cx="32" cy="60" r="10" fill="#38BDF8"/>
+                        <rect x="54" y="20" width="28" height="60" rx="5" fill="#1E293B"/>
+                        <circle cx="68" cy="60" r="10" fill="#38BDF8"/>
+                      </svg>`
+            },
+            webcam: {
+                title: "La Cámara Web",
+                description: "Captura video en vivo para que nuestros amigos o profesores puedan vernos cuando conversamos por internet.",
+                svg: `<svg class="w-28 h-28" viewBox="0 0 100 100">
+                        <circle cx="50" cy="42" r="22" fill="#1E293B"/>
+                        <circle cx="50" cy="42" r="14" fill="#334155"/>
+                        <circle cx="50" cy="42" r="8" fill="#818CF8"/>
+                      </svg>`
+            }
+        };
+
+        function speakText(text) {
+            if (!speechEnabled || !('speechSynthesis' in window)) return;
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'es-ES';
+            utterance.rate = calmModeEnabled ? 0.8 : 0.9;
+            utterance.pitch = 1.0;
+            window.speechSynthesis.speak(utterance);
+        }
+
+        function toggleAudio() {
+            speechEnabled = !speechEnabled;
+            document.getElementById('audioIcon').innerText = speechEnabled ? '🔊' : '🔇';
+            if (!speechEnabled && 'speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+            }
+        }
+
+        function toggleCalmMode() {
+            calmModeEnabled = !calmModeEnabled;
+            const btn = document.getElementById('btnCalmToggle');
+            if (calmModeEnabled) {
+                document.body.classList.add('calm-mode');
+                btn.className = "px-3 py-2.5 bg-emerald-600 text-white rounded-2xl font-bold transition flex items-center gap-1 text-sm shadow-inner";
+                speakText("Modo calma activado. Animaciones reducidas.");
+            } else {
+                document.body.classList.remove('calm-mode');
+                btn.className = "px-3 py-2.5 bg-emerald-100 text-emerald-900 rounded-2xl font-bold hover:bg-emerald-200 transition flex items-center gap-1 text-sm";
+                speakText("Modo estándar activado.");
+            }
+        }
+
+        function switchTab(tab) {
+            const tabs = ['explore', 'connect', 'game', 'playground'];
+            tabs.forEach(t => {
+                const el = document.getElementById('tab' + t.charAt(0).toUpperCase() + t.slice(1));
+                const btn = document.getElementById('tabBtn' + t.charAt(0).toUpperCase() + t.slice(1));
+                if (t === tab) {
+                    el.classList.remove('hidden');
+                    el.classList.add('flex');
+                    btn.className = "px-4 py-2.5 rounded-2xl text-base font-bold bg-sky-500 text-white shadow-md transition flex items-center gap-2";
+                } else {
+                    el.classList.add('hidden');
+                    el.classList.remove('flex');
+                    btn.className = "px-4 py-2.5 rounded-2xl text-base font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition flex items-center gap-2";
+                }
+            });
+
+            if (tab === 'explore') speakText("Sección conocer las partes de la computadora.");
+            if (tab === 'connect') speakText("Laboratorio de conexión. Toca las partes para conectarlas al CPU.");
+            if (tab === 'game') speakText("Juego de encajar partes.");
+            if (tab === 'playground') speakText("Patio de práctica de teclado y ratón.");
+        }
+
+        function openPartModal(key) {
+            const part = partsData[key];
+            if (!part) return;
+
+            document.getElementById('modalTitle').innerText = part.title;
+            document.getElementById('modalDescription').innerText = part.description;
+            document.getElementById('modalIconContainer').innerHTML = part.svg;
+
+            const modal = document.getElementById('partModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+
+            speakText(part.title + ". " + part.description);
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('partModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+        }
+
+        function connectPart(partKey) {
+            if (connectedParts[partKey]) return;
+
+            connectedParts[partKey] = true;
+            const btn = document.getElementById('conn-' + partKey);
+            const badge = document.getElementById('badge-' + partKey);
+
+            btn.classList.remove('bg-slate-50', 'border-slate-300');
+            btn.classList.add('bg-emerald-50', 'border-emerald-400');
+            badge.innerText = "✓ Conectado";
+            badge.className = "mt-2 text-xs font-black px-2.5 py-1 rounded-full bg-emerald-200 text-emerald-800";
+
+            let count = Object.values(connectedParts).filter(Boolean).length;
+            document.getElementById('statusText').innerText = `Proceso de conexión (${count}/4 Conectados)`;
+            speakText(`¡Excelente! Conectaste la ${partKey === 'speakers' ? 'los parlantes' : partKey}.`);
+
+            if (count === 4) {
+                const pwrBtn = document.getElementById('btnPowerOn');
+                pwrBtn.disabled = false;
+                pwrBtn.className = "mt-4 px-8 py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-black text-lg rounded-2xl shadow-lg transition duration-300 flex items-center gap-2 cursor-pointer animate-pulse";
+                speakText("¡Todas las partes están conectadas! Presiona el botón encender.");
+            }
+        }
+
+        function turnOnComputer() {
+            const screen = document.getElementById('computerScreenDisplay');
+            screen.className = "w-full h-36 bg-sky-400 rounded-2xl border-4 border-white flex flex-col items-center justify-center text-center p-4 transition-all duration-500 shadow-inner";
+            screen.innerHTML = `
+                <p class="text-slate-900 font-black text-2xl tracking-wide">¡BIENVENIDO! 🚀</p>
+                <p class="text-slate-800 font-bold text-sm mt-1">La computadora se ha encendido correctamente.</p>
+            `;
+            speakText("¡Felicitaciones! La computadora está encendida y lista para usarse.");
+            setTimeout(showCelebration, 1200);
+        }
+
+        function resetConnectionLab() {
+            connectedParts = { monitor: false, keyboard: false, mouse: false, speakers: false };
+            const keys = ['monitor', 'keyboard', 'mouse', 'speakers'];
+            keys.forEach(k => {
+                const btn = document.getElementById('conn-' + k);
+                const badge = document.getElementById('badge-' + k);
+                btn.className = "p-4 bg-slate-50 border-2 border-slate-300 rounded-2xl flex flex-col items-center justify-center hover:bg-sky-50 transition cursor-pointer group";
+                badge.innerText = "🔌 Toca para conectar";
+                badge.className = "mt-2 text-xs font-black px-2.5 py-1 rounded-full bg-slate-200 text-slate-600";
+            });
+
+            document.getElementById('statusText').innerText = "Computadora Desconectada (0/4 Conectados)";
+            const pwrBtn = document.getElementById('btnPowerOn');
+            pwrBtn.disabled = true;
+            pwrBtn.className = "mt-4 px-8 py-3 bg-slate-700 text-slate-400 font-black text-lg rounded-2xl shadow-lg transition duration-300 flex items-center gap-2 cursor-not-allowed";
+
+            const screen = document.getElementById('computerScreenDisplay');
+            screen.className = "w-full h-36 bg-slate-800 rounded-2xl border-2 border-slate-600 flex flex-col items-center justify-center text-center p-4 transition-all duration-500";
+            screen.innerHTML = `
+                <p id="screenText" class="text-slate-400 font-bold text-lg">SYSTEM OFF</p>
+                <p id="screenSubtext" class="text-slate-500 text-xs mt-1">Conecta todos los cables para encender la computadora</p>
+            `;
+        }
+
+        function allowDrop(ev) {
+            ev.preventDefault();
+        }
+
+        function handleDragStart(ev) {
+            ev.dataTransfer.setData("text", ev.target.id);
+        }
+
+        function handleDragEnter(ev) {
+            ev.preventDefault();
+            if (ev.currentTarget.classList.contains('drop-target')) {
+                ev.currentTarget.classList.add('drop-target-active');
+            }
+        }
+
+        function handleDragLeave(ev) {
+            if (ev.currentTarget.classList.contains('drop-target')) {
+                ev.currentTarget.classList.remove('drop-target-active');
+            }
+        }
+
+        function handleDrop(ev, expectedType) {
+            ev.preventDefault();
+            const targetBox = ev.currentTarget;
+            targetBox.classList.remove('drop-target-active');
+
+            const data = ev.dataTransfer.getData("text");
+            const draggedElement = document.getElementById(data);
+            if (!draggedElement) return;
+
+            const draggedType = data.replace('drag-', '');
+
+            if (draggedType === expectedType) {
+                targetBox.innerHTML = '';
+                targetBox.appendChild(draggedElement);
+                targetBox.className = "drop-target bg-emerald-50 border-4 border-solid border-emerald-400 rounded-3xl p-6 min-h-[170px] flex flex-col items-center justify-center text-center transition";
+
+                draggedElement.setAttribute('draggable', 'false');
+                draggedElement.className = "bg-emerald-100 border-2 border-emerald-300 px-5 py-3 rounded-2xl font-bold text-emerald-900 text-lg flex items-center gap-2 shadow-sm cursor-default";
+
+                speakText("¡Muy bien! Es la ubicación correcta.");
+                dragScore++;
+
+                if (dragScore === 4) {
+                    setTimeout(showCelebration, 600);
+                }
+            } else {
+                speakText("Esa no es su casilla. Inténtalo de nuevo.");
+            }
+        }
+
+        function resetDragGame() {
+            dragScore = 0;
+            const container = document.getElementById('dragContainer');
+            container.innerHTML = `
+                <div id="drag-monitor" draggable="true" ondragstart="handleDragStart(event)" class="cursor-grab bg-sky-100 border-2 border-sky-300 px-5 py-3 rounded-2xl font-bold text-sky-900 text-lg flex items-center gap-2 shadow-sm hover:bg-sky-200 transition">
+                    <span>🖥️</span> Pantalla
+                </div>
+                <div id="drag-cpu" draggable="true" ondragstart="handleDragStart(event)" class="cursor-grab bg-indigo-100 border-2 border-indigo-300 px-5 py-3 rounded-2xl font-bold text-indigo-900 text-lg flex items-center gap-2 shadow-sm hover:bg-indigo-200 transition">
+                    <span>🔲</span> CPU (Torre)
+                </div>
+                <div id="drag-keyboard" draggable="true" ondragstart="handleDragStart(event)" class="cursor-grab bg-amber-100 border-2 border-amber-300 px-5 py-3 rounded-2xl font-bold text-amber-900 text-lg flex items-center gap-2 shadow-sm hover:bg-amber-200 transition">
+                    <span>⌨️</span> Teclado
+                </div>
+                <div id="drag-mouse" draggable="true" ondragstart="handleDragStart(event)" class="cursor-grab bg-rose-100 border-2 border-rose-300 px-5 py-3 rounded-2xl font-bold text-rose-900 text-lg flex items-center gap-2 shadow-sm hover:bg-rose-200 transition">
+                    <span>🖱️</span> Ratón
+                </div>
+            `;
+
+            const targets = document.querySelectorAll('.drop-target');
+            const labels = ['Pantalla', 'CPU', 'Teclado', 'Ratón'];
+            const icons = ['🖥️', '🔲', '⌨️', '🖱️'];
+
+            targets.forEach((target, index) => {
+                target.className = "drop-target bg-white border-4 border-dashed border-slate-300 rounded-3xl p-6 min-h-[170px] flex flex-col items-center justify-center text-center transition";
+                target.innerHTML = `
+                    <span class="text-4xl mb-2 text-slate-300">${icons[index]}</span>
+                    <p class="font-bold text-slate-400">¿Dónde va la ${labels[index]}?</p>
+                `;
+            });
+        }
+
+        function pressVirtualKey(char, emoji) {
+            const displayEmoji = document.getElementById('interactiveDisplayEmoji');
+            const displayText = document.getElementById('interactiveDisplayText');
+
+            displayEmoji.innerText = emoji;
+            displayText.innerText = `Presionaste la tecla: "${char}"`;
+
+            speakText(`Tecla ${char}`);
+        }
+
+        function simulateMouseClick(type) {
+            const displayEmoji = document.getElementById('interactiveDisplayEmoji');
+            const displayText = document.getElementById('interactiveDisplayText');
+
+            if (type === 'izquierdo') {
+                displayEmoji.innerText = '👈';
+                displayText.innerText = '¡Clic Izquierdo! (Seleccionar)';
+                speakText("Clic Izquierdo. Sirve para seleccionar.");
+            } else {
+                displayEmoji.innerText = '👉';
+                displayText.innerText = '¡Clic Derecho! (Menú de Opciones)';
+                speakText("Clic Derecho. Muestra más opciones.");
+            }
+        }
+
+        function showCelebration() {
+            const overlay = document.getElementById('celebrationOverlay');
+            overlay.classList.remove('hidden');
+            overlay.classList.add('flex');
+            speakText("¡Excelente trabajo! Has completado la actividad correctamente.");
+        }
